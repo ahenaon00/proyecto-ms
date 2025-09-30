@@ -102,6 +102,7 @@ function ServiceDetail() {
       console.log('Adding to cart - Item ID:', id, 'Quantity:', quantity, 'Price:', service.item.clasificacion.precio.parsedValue, '(User ID from JWT)')
 
       const cartData = {
+        uid : "uid",
         cantidad: quantity,
         precioUnitario: service.item.clasificacion.precio.parsedValue
       }
