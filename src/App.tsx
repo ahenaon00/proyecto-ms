@@ -1,7 +1,10 @@
 import { useState } from 'react'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import Login from "./components/Login"
 import Home from "./components/Home"
 import RegisterForm from "./components/RegisterForm"
+import ServiceDetail from "./components/ServiceDetail"
+import Cart from "./components/Cart"
 import AuthProvider, { useAuth } from "./contexts/AuthContext"
 import { ToastContainer } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
@@ -21,16 +24,27 @@ function AppContent() {
     )
   }
 
-  if (token) return <Home />
+  if (!token) {
+    return view === 'login' ? <Login onSwitchToRegister={() => setView('register')} /> : <RegisterForm onSwitchToLogin={() => setView('login')} />
+  }
 
-  return view === 'login' ? <Login onSwitchToRegister={() => setView('register')} /> : <RegisterForm onSwitchToLogin={() => setView('login')} />
+  return (
+    <Routes>
+      <Route path="/" element={<Home />} />
+      <Route path="/service/:id" element={<ServiceDetail />} />
+      <Route path="/cart" element={<Cart />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  )
 }
 
 function App() {
   return (
     <AuthProvider>
-      <AppContent />
-      <ToastContainer />
+      <BrowserRouter>
+        <AppContent />
+        <ToastContainer />
+      </BrowserRouter>
     </AuthProvider>
   )
 }

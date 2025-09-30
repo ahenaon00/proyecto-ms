@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react"
+import { useNavigate } from "react-router-dom"
 import { useAuth } from "@/contexts/AuthContext"
 import { Button } from "./ui/button"
 import { Input } from "./ui/input"
@@ -73,6 +74,7 @@ const categories = [
 ]
 
 function Home() {
+  const navigate = useNavigate()
   const { user, logout, hasRole, hasAnyRole } = useAuth()
   const [services, setServices] = useState<Service[]>([])
   const [filteredServices, setFilteredServices] = useState<Service[]>([])
@@ -269,9 +271,14 @@ function Home() {
                 Bienvenido, {user?.email}
               </p>
             </div>
-            <Button onClick={logout} variant="outline">
-              Cerrar Sesión
-            </Button>
+            <div className="flex items-center space-x-3">
+              <Button onClick={() => navigate('/cart')} variant="outline">
+                🛒 Carrito
+              </Button>
+              <Button onClick={logout} variant="outline">
+                Cerrar Sesión
+              </Button>
+            </div>
           </div>
         </div>
       </div>
@@ -403,7 +410,10 @@ function Home() {
                       <span className="text-lg font-bold text-green-600 dark:text-green-400">
                         ${service.item.clasificacion.precio.parsedValue}
                       </span>
-                      <Button size="sm">
+                      <Button
+                        size="sm"
+                        onClick={() => navigate(`/service/${service.item.id}`)}
+                      >
                         {hasRole('cliente') ? 'Reservar' : 'Ver Detalles'}
                       </Button>
                     </div>
