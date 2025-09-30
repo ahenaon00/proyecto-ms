@@ -86,7 +86,8 @@ function Home() {
     const loadServices = async () => {
       try {
         setLoading(true)
-        const response = await api.get('http://localhost:8080/marketplace-ms/items')
+        console.log('Loading all services via REST')
+        const response = await api.get('/marketplace-ms/items')
 
         // Convert object response to array
         const servicesArray = Object.values(response.data) as Service[]
@@ -106,27 +107,93 @@ function Home() {
 
   // Filter services by category
   useEffect(() => {
-    if (selectedCategory === 'todos') {
-      setFilteredServices(services)
-    } else {
-      // Map frontend category IDs to backend clasificacion types
-      const categoryTypeMap: { [key: string]: string } = {
-        'alojamiento': 'Alojamiento',
-        'alimentacion': 'Alimentacion',
-        'transporte': 'Transporte',
-        'paseos-ecologicos': 'PaseosEcologicos'
-      }
-
-      const targetCategoryType = categoryTypeMap[selectedCategory]
-      if (targetCategoryType) {
-        setFilteredServices(services.filter(service =>
-          service.item.clasificacion.tipo === targetCategoryType
-        ))
-      } else {
+    const loadFilteredServices = async () => {
+      if (selectedCategory === 'todos') {
+        console.log('Showing all services (no filtering)')
         setFilteredServices(services)
+      } else {
+        // Map frontend category IDs to backend clasificacion types
+        const categoryTypeMap: { [key: string]: string } = {
+          'alojamiento': 'Alojamiento',
+          'alimentacion': 'Alimentacion',
+          'transporte': 'Transporte',
+          'paseos-ecologicos': 'PaseosEcologicos'
+        }
+
+        const targetCategoryType = categoryTypeMap[selectedCategory]
+        if (targetCategoryType) {
+          try {
+            setLoading(true)
+            setError('')
+            const query = `query { itemsPorClasificacion(clasificacion: "${targetCategoryType}") { id titulo descripcion lugarInicio precio calificacionPromedio visualizaciones capacidadMaxima clasificacion { tipo lugarInicio precio capacidadMaxima } } }`
+            console.log('Making GraphQL request for category:', targetCategoryType, 'with query:', query)
+            const response = await api.post('/marketplace-ms/graphql', { query })
+            console.log('GraphQL response:', response.data)
+            const items = response.data.data.itemsPorClasificacion
+
+            // Map to Service[] structure
+            const mappedServices: Service[] = items.map((item: any) => ({
+              item: {
+                id: item.id,
+                titulo: item.titulo,
+                descripcion: item.descripcion,
+                fechaPublicacion: '', // Not in query, set default
+                stock: 0, // Not in query, set default
+                visualizaciones: item.visualizaciones,
+                calificacionPromedio: item.calificacionPromedio,
+                clasificacion: {
+                  tipo: item.clasificacion.tipo,
+                  id: 0, // Not in query, set default
+                  lugarInicio: item.clasificacion.lugarInicio,
+                  precio: { source: '', parsedValue: item.clasificacion.precio },
+                  fechaDisponibilidadInicio: '', // Not in query
+                  fechaDisponibilidadFin: '', // Not in query
+                  capacidadMaxima: item.clasificacion.capacidadMaxima,
+                  requisitosEspeciales: [], // Not in query
+                  fechaCheckin: '', // Not in query
+                  fechaCheckout: '', // Not in query
+                  tipoInmueble: '', // Not in query
+                  numeroBanos: 0, // Not in query
+                  numeroHabitaciones: 0, // Not in query
+                  lat: 0, // Not in query
+                  lng: 0 // Not in query
+                }
+              },
+              clasificacionData: {
+                tipo: item.clasificacion.tipo,
+                id: 0, // Not in query
+                lugarInicio: item.clasificacion.lugarInicio,
+                precio: { source: '', parsedValue: item.clasificacion.precio },
+                fechaDisponibilidadInicio: '', // Not in query
+                fechaDisponibilidadFin: '', // Not in query
+                capacidadMaxima: item.clasificacion.capacidadMaxima,
+                requisitosEspeciales: [], // Not in query
+                fechaCheckin: '', // Not in query
+                fechaCheckout: '', // Not in query
+                tipoInmueble: '', // Not in query
+                numeroBanos: 0, // Not in query
+                numeroHabitaciones: 0, // Not in query
+                lat: 0, // Not in query
+                lng: 0 // Not in query
+              }
+            }))
+
+            console.log('Mapped services:', mappedServices.length, 'items')
+            setFilteredServices(mappedServices)
+          } catch (err) {
+            console.error('Error filtering services:', err)
+            setError('Error al filtrar servicios')
+          } finally {
+            setLoading(false)
+          }
+        } else {
+          setFilteredServices(services)
+        }
       }
     }
-  }, [selectedCategory, services])
+
+    loadFilteredServices()
+  }, [selectedCategory])
 
   const getCategoryIcon = (clasificacionTipo: string) => {
     const categoryMap: { [key: string]: string } = {
@@ -166,6 +233,7 @@ function Home() {
     try {
       setLoading(true)
       setError('')
+      console.log('Searching services with query:', searchQuery.trim())
       const response = await api.get(`http://localhost:8080/marketplace-ms/items/search?query=${encodeURIComponent(searchQuery.trim())}`)
 
       // Convert object response to array
@@ -256,19 +324,6 @@ function Home() {
               >
                 <span>{category.icon}</span>
                 {category.name}
-                {category.id !== 'todos' && (
-                  <span className="ml-1 text-xs bg-gray-200 dark:bg-gray-700 px-2 py-1 rounded-full">
-                    {services.filter(s => {
-                      const categoryTypeMap: { [key: string]: string } = {
-                        'alojamiento': 'Alojamiento',
-                        'alimentacion': 'Alimentacion',
-                        'transporte': 'Transporte',
-                        'paseos-ecologicos': 'PaseosEcologicos'
-                      }
-                      return s.item.clasificacion.tipo === categoryTypeMap[category.id]
-                    }).length}
-                  </span>
-                )}
               </Button>
             ))}
           </div>
