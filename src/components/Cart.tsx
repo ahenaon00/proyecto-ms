@@ -34,7 +34,6 @@ interface CartItem {
 
 function Cart() {
   const navigate = useNavigate()
-  const { user } = useAuth()
   const [cartItems, setCartItems] = useState<CartItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -44,7 +43,7 @@ function Cart() {
       try {
         setLoading(true)
         console.log('Fetching cart items (user ID from JWT)')
-        const response = await api.get('/transaction-ms/carrito-compra/list-items-carrito/uid')
+        const response = await api.post('/transaction-ms/carrito-compra/list-items-carrito/uid', { uid: "uid" })
         console.log('Cart items response:', response.data)
 
         const cartItemsAPI: CartItemAPI[] = response.data || []
