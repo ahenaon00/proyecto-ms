@@ -43,7 +43,7 @@ function Cart() {
       try {
         setLoading(true)
         console.log('Fetching cart items (user ID from JWT)')
-        const response = await api.post('/transaction-ms/carrito-compra/list-items-carrito/uid', { uid: "uid" })
+        const response = await api.post('/transaction-ms/carrito-compra/list-items-carrito', { uid: "uid" })
         console.log('Cart items response:', response.data)
 
         const cartItemsAPI: CartItemAPI[] = response.data || []
