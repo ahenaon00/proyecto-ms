@@ -4,7 +4,11 @@ import { Input } from "./ui/input"
 import { useAuth } from "@/contexts/AuthContext"
 import api from "@/lib/api"
 
-function Login() {
+interface LoginProps {
+  onSwitchToRegister?: () => void
+}
+
+function Login({ onSwitchToRegister }: LoginProps) {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
@@ -81,12 +85,16 @@ function Login() {
           
           {error && <p className="text-red-500 text-center text-sm">{error}</p>}
           
-          <Button 
+          <Button
             onClick={() => {
-              setIsRegister(!isRegister)
-              setError("")
-            }} 
-            variant="outline" 
+              if (onSwitchToRegister) {
+                onSwitchToRegister()
+              } else {
+                setIsRegister(!isRegister)
+                setError("")
+              }
+            }}
+            variant="outline"
             className="w-full"
             disabled={loading}
           >

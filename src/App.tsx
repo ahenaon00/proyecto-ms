@@ -1,10 +1,15 @@
+import { useState } from 'react'
 import Login from "./components/Login"
 import Home from "./components/Home"
+import RegisterForm from "./components/RegisterForm"
 import AuthProvider, { useAuth } from "./contexts/AuthContext"
+import { ToastContainer } from 'react-toastify'
+import 'react-toastify/dist/ReactToastify.css'
 
 function AppContent() {
   const { token, isLoading } = useAuth()
-  
+  const [view, setView] = useState<'login' | 'register'>('login')
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900">
@@ -15,14 +20,17 @@ function AppContent() {
       </div>
     )
   }
-  
-  return token ? <Home /> : <Login />
+
+  if (token) return <Home />
+
+  return view === 'login' ? <Login onSwitchToRegister={() => setView('register')} /> : <RegisterForm onSwitchToLogin={() => setView('login')} />
 }
 
 function App() {
   return (
     <AuthProvider>
       <AppContent />
+      <ToastContainer />
     </AuthProvider>
   )
 }
