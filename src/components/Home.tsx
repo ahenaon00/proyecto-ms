@@ -91,8 +91,19 @@ function Home() {
         console.log('Loading all services via REST')
         const response = await api.get('/marketplace-ms/items')
 
-        // Convert object response to array
-        const servicesArray = Object.values(response.data) as Service[]
+        // Convert object response to array and map to ensure item.clasificacion is set
+        const servicesArray = Object.values(response.data).map((service: any) => ({
+          ...service,
+          item: {
+            ...service.item,
+            clasificacion: {
+              ...service.clasificacionData,
+              precio: typeof service.clasificacionData.precio === 'number'
+                ? { source: service.clasificacionData.precio.toString(), parsedValue: service.clasificacionData.precio }
+                : service.clasificacionData.precio
+            }
+          }
+        })) as Service[]
         setServices(servicesArray)
         setFilteredServices(servicesArray)
       } catch (err) {

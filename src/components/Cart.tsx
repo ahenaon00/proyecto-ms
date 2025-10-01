@@ -37,6 +37,7 @@ function Cart() {
   const [cartItems, setCartItems] = useState<CartItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [processing, setProcessing] = useState(false)
 
   useEffect(() => {
     const fetchCartItems = async () => {
@@ -122,6 +123,25 @@ function Cart() {
 
   const getTotal = () => {
     return cartItems.reduce((total, item) => total + item.subtotal, 0)
+  }
+
+  const processPayment = async () => {
+    if (cartItems.length === 0) return
+
+    try {
+      setProcessing(true)
+      const paymentData = {
+        uid: "uid",
+        itemIds: cartItems.map(item => item.itemId)
+      }
+      const response = await api.post('/transaction-ms/transaccion/process-payment', paymentData)
+      toast.success('Pago procesado exitosamente!')
+    } catch (err: any) {
+      console.error('Error processing payment:', err)
+      toast.error('Error al procesar el pago')
+    } finally {
+      setProcessing(false)
+    }
   }
 
   if (loading) {
@@ -289,8 +309,8 @@ function Cart() {
                   </div>
                 </div>
 
-                <Button className="w-full mb-3" size="lg">
-                  Proceder al Pago
+                <Button className="w-full mb-3" size="lg" onClick={processPayment} disabled={processing}>
+                  {processing ? 'Procesando...' : 'pagar'}
                 </Button>
 
                 <Button variant="outline" className="w-full" onClick={() => navigate('/')}>

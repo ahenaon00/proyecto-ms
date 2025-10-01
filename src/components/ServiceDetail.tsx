@@ -16,6 +16,12 @@ interface RequisitoEspecial {
   requisito: string
 }
 
+interface PreguntaFrecuente {
+  id: number
+  pregunta: string
+  itemId: number
+}
+
 interface Clasificacion {
   tipo: string
   id: number
@@ -43,6 +49,7 @@ interface Item {
   stock: number
   visualizaciones: number
   calificacionPromedio: number
+  preguntasFrecuentes: PreguntaFrecuente[]
 }
 
 interface ServiceDetailData {
@@ -59,6 +66,7 @@ function ServiceDetail() {
   const [error, setError] = useState('')
   const [quantity, setQuantity] = useState(1)
   const [addingToCart, setAddingToCart] = useState(false)
+  const [newQuestion, setNewQuestion] = useState('')
 
   useEffect(() => {
     const fetchServiceDetail = async () => {
@@ -67,7 +75,18 @@ function ServiceDetail() {
         console.log('Fetching service detail for ID:', id)
         const response = await api.get(`/marketplace-ms/items/${id}`)
         console.log('Service detail response:', response.data)
-        setService(response.data)
+        setService({
+          ...response.data,
+          item: {
+            ...response.data.item,
+            clasificacion: {
+              ...response.data.clasificacionData,
+              precio: typeof response.data.clasificacionData.precio === 'number'
+                ? { source: response.data.clasificacionData.precio.toString(), parsedValue: response.data.clasificacionData.precio }
+                : response.data.clasificacionData.precio
+            }
+          }
+        })
       } catch (err) {
         console.error('Error fetching service detail:', err)
         setError('Error al cargar los detalles del servicio')
@@ -103,7 +122,7 @@ function ServiceDetail() {
 
       const cartData = {
         uid : "uid",
-        cantidad: quantity,
+        cantidad: service.item.stock > 0 ? quantity : 1,
         precioUnitario: service.item.clasificacion.precio.parsedValue
       }
 
@@ -119,6 +138,44 @@ function ServiceDetail() {
       toast.error('Error al agregar el producto al carrito')
     } finally {
       setAddingToCart(false)
+    }
+  }
+
+  const addQuestion = async () => {
+    if (!newQuestion.trim() || !id) return
+    try {
+      const response = await api.post(`/marketplace-ms/items/${id}/preguntas`, { pregunta: newQuestion })
+      const newQ = response.data
+      setService(prev => prev ? {
+        ...prev,
+        item: {
+          ...prev.item,
+          preguntasFrecuentes: [...prev.item.preguntasFrecuentes, newQ]
+        }
+      } : null)
+      setNewQuestion('')
+      toast.success('Pregunta agregada exitosamente')
+    } catch (err) {
+      console.error('Error adding question:', err)
+      toast.error('Error al agregar la pregunta')
+    }
+  }
+
+  const deleteQuestion = async (preguntaId: number) => {
+    if (!id) return
+    try {
+      await api.delete(`/marketplace-ms/items/${id}/preguntas/${preguntaId}`)
+      setService(prev => prev ? {
+        ...prev,
+        item: {
+          ...prev.item,
+          preguntasFrecuentes: prev.item.preguntasFrecuentes.filter(q => q.id !== preguntaId)
+        }
+      } : null)
+      toast.success('Pregunta eliminada exitosamente')
+    } catch (err) {
+      console.error('Error deleting question:', err)
+      toast.error('Error al eliminar la pregunta')
     }
   }
 
@@ -301,7 +358,40 @@ function ServiceDetail() {
               </div>
             )}
 
-            {/* Location Map Placeholder */}
+            {/* Frequent Questions */}
+            {service.item.preguntasFrecuentes && service.item.preguntasFrecuentes.length > 0 && (
+              <div className="mb-6">
+                <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-3">Preguntas Frecuentes</h2>
+                <ul className="space-y-2">
+                  {service.item.preguntasFrecuentes.map((q) => (
+                    <li key={q.id} className="flex items-start justify-between bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                      <span className="text-gray-700 dark:text-gray-300">{q.pregunta}</span>
+                      <Button variant="outline" size="sm" onClick={() => deleteQuestion(q.id)}>
+                        Eliminar
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Add New Question */}
+            <div className="mb-6">
+              <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-3">Agregar Pregunta Frecuente</h2>
+              <div className="flex gap-2">
+                <Input
+                  value={newQuestion}
+                  onChange={(e) => setNewQuestion(e.target.value)}
+                  placeholder="Escribe la pregunta..."
+                  className="flex-1"
+                />
+                <Button onClick={addQuestion} disabled={!newQuestion.trim()}>
+                  Agregar
+                </Button>
+              </div>
+            </div>
+
+             {/* Location Map Placeholder */}
             {service.item.clasificacion.lat && service.item.clasificacion.lng && (
               <div className="mb-6">
                 <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-3">Ubicación</h2>
@@ -314,33 +404,44 @@ function ServiceDetail() {
             )}
 
             {/* Quantity Selector */}
-            <div className="mb-6">
-              <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-3">Cantidad</h2>
-              <div className="flex items-center gap-4">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                  disabled={quantity <= 1}
-                >
-                  -
-                </Button>
-                <Input
-                  type="number"
-                  value={quantity}
-                  onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-                  className="w-20 text-center"
-                  min="1"
-                />
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setQuantity(quantity + 1)}
-                >
-                  +
-                </Button>
+            {service.item.stock > 0 && (
+              <div className="mb-6">
+                <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-3">Cantidad</h2>
+                <div className="flex items-center gap-4">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                    disabled={quantity <= 1}
+                  >
+                    -
+                  </Button>
+                  <Input
+                    type="number"
+                    value={quantity}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value) || 1
+                      const maxQty = service.item.stock > 0 ? service.item.stock : Infinity
+                      setQuantity(Math.max(1, Math.min(val, maxQty)))
+                    }}
+                    className="w-20 text-center"
+                    min="1"
+                    max={service.item.stock > 0 ? service.item.stock : undefined}
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const maxQty = service.item.stock > 0 ? service.item.stock : Infinity
+                      setQuantity(Math.min(quantity + 1, maxQty))
+                    }}
+                    disabled={service.item.stock > 0 && quantity >= service.item.stock}
+                  >
+                    +
+                  </Button>
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Action Buttons */}
             <div className="flex gap-4 mt-8">
