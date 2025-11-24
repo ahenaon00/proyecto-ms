@@ -1,92 +1,57 @@
 import { useState, useEffect } from "react"
 import { useParams, useNavigate } from "react-router-dom"
-import { useAuth } from "@/contexts/AuthContext"
 import { Button } from "./ui/button"
 import { Input } from "./ui/input"
 import { toast } from 'react-toastify'
-import api from "@/lib/api"
+import api, { itemsAPI, type ItemResponse } from "@/lib/api"
+import FrequentQuestions from "./FrequentQuestions"
 
-interface Precio {
-  source: string
-  parsedValue: number
-}
 
-interface RequisitoEspecial {
-  id: number
-  requisito: string
-}
 
-interface PreguntaFrecuente {
-  id: number
-  pregunta: string
-  itemId: number
-}
-
-interface Clasificacion {
-  tipo: string
-  id: number
-  lugarInicio: string
-  precio: Precio
-  fechaDisponibilidadInicio: string
-  fechaDisponibilidadFin: string
-  capacidadMaxima: number
-  requisitosEspeciales: RequisitoEspecial[]
-  fechaCheckin: string
-  fechaCheckout: string
-  tipoInmueble: string
-  numeroBanos: number
-  numeroHabitaciones: number
-  lat: number
-  lng: number
-}
-
-interface Item {
-  id: number
-  clasificacion: Clasificacion
-  titulo: string
-  descripcion: string
-  fechaPublicacion: string
-  stock: number
-  visualizaciones: number
-  calificacionPromedio: number
-  preguntasFrecuentes: PreguntaFrecuente[]
-}
-
-interface ServiceDetailData {
-  item: Item
-  clasificacionData: Clasificacion
-}
+// La nueva API devuelve directamente el item con todos los campos
+// No necesitamos interfaces complejas para clasificacion separada
 
 function ServiceDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { user } = useAuth()
-  const [service, setService] = useState<ServiceDetailData | null>(null)
+
+  const [item, setItem] = useState<ItemResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [quantity, setQuantity] = useState(1)
   const [addingToCart, setAddingToCart] = useState(false)
-  const [newQuestion, setNewQuestion] = useState('')
 
   useEffect(() => {
     const fetchServiceDetail = async () => {
       try {
         setLoading(true)
         console.log('Fetching service detail for ID:', id)
-        const response = await api.get(`/marketplace-ms/items/${id}`)
+        const response = await itemsAPI.getItem(Number(id))
         console.log('Service detail response:', response.data)
-        setService({
-          ...response.data,
-          item: {
-            ...response.data.item,
-            clasificacion: {
-              ...response.data.clasificacionData,
-              precio: typeof response.data.clasificacionData.precio === 'number'
-                ? { source: response.data.clasificacionData.precio.toString(), parsedValue: response.data.clasificacionData.precio }
-                : response.data.clasificacionData.precio
-            }
+        
+        // Manejar estructura legacy del backend (temporal mientras el backend se actualiza)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const rawData = response.data as any // TODO: Remove when backend returns new structure
+        let processedItem: ItemResponse
+        
+        if (rawData.item) {
+          // Estructura legacy - extraer y combinar datos
+          processedItem = {
+            ...rawData.item,
+            // Asegurar que los campos necesarios estén presentes
+            lugarInicio: rawData.item.lugarInicio || rawData.clasificacionData?.lugarInicio || '',
+            precio: rawData.item.precio || rawData.clasificacionData?.precio || 0,
+            capacidadMaxima: rawData.item.capacidadMaxima || rawData.clasificacionData?.capacidadMaxima || 0,
+            fechaDisponibilidadInicio: rawData.item.fechaDisponibilidadInicio || rawData.clasificacionData?.fechaDisponibilidadInicio || '',
+            fechaDisponibilidadFin: rawData.item.fechaDisponibilidadFin || rawData.clasificacionData?.fechaDisponibilidadFin || ''
           }
-        })
+        } else {
+          // Nueva estructura plana
+          processedItem = rawData as ItemResponse
+        }
+        
+        console.log('Processed item data:', processedItem)
+        setItem(processedItem)
       } catch (err) {
         console.error('Error fetching service detail:', err)
         setError('Error al cargar los detalles del servicio')
@@ -100,30 +65,41 @@ function ServiceDetail() {
     }
   }, [id])
 
-  const getCategoryIcon = (clasificacionTipo: string) => {
-    const categoryMap: { [key: string]: string } = {
-      'Alojamiento': '🏨',
-      'Alimentacion': '🍽️',
-      'Transporte': '🚗',
-      'PaseosEcologicos': '🌿'
+  const getCategoryIcon = (clasificacionId: number) => {
+    // Mapear clasificacionId a íconos
+    const categoryMap: { [key: number]: string } = {
+      1: '🏨', // Alojamiento
+      2: '🍽️', // Alimentación
+      3: '🚗', // Transporte
+      4: '🌿'  // Paseos Ecológicos
     }
-    return categoryMap[clasificacionTipo] || '📋'
+    return categoryMap[clasificacionId] || '📋'
+  }
+
+  const getCategoryName = (clasificacionId: number) => {
+    const categoryMap: { [key: number]: string } = {
+      1: 'Alojamiento',
+      2: 'Alimentación', 
+      3: 'Transporte',
+      4: 'Paseos Ecológicos'
+    }
+    return categoryMap[clasificacionId] || 'Desconocido'
   }
 
   const addToCart = async () => {
-    if (!service || !id) {
-      console.log('Missing required data:', { service: !!service, id })
+    if (!item || !id) {
+      console.log('Missing required data:', { item: !!item, id })
       return
     }
 
     try {
       setAddingToCart(true)
-      console.log('Adding to cart - Item ID:', id, 'Quantity:', quantity, 'Price:', service.item.clasificacion.precio.parsedValue, '(User ID from JWT)')
+      console.log('Adding to cart - Item ID:', id, 'Quantity:', quantity, 'Price:', item.precio, '(User ID from JWT)')
 
       const cartData = {
         uid : "uid",
-        cantidad: service.item.stock > 0 ? quantity : 1,
-        precioUnitario: service.item.clasificacion.precio.parsedValue
+        cantidad: item.stock > 0 ? quantity : 1,
+        precioUnitario: item.precio
       }
 
       console.log('Sending POST request to:', `/marketplace-ms/items/${id}/add-to-cart`, 'with data:', cartData)
@@ -131,53 +107,15 @@ function ServiceDetail() {
       console.log('Add to cart response:', response.data)
 
       toast.success('¡Producto agregado al carrito exitosamente!')
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error adding to cart:', err)
-      console.error('Error response:', err.response?.data)
-      console.error('Error status:', err.response?.status)
       toast.error('Error al agregar el producto al carrito')
     } finally {
       setAddingToCart(false)
     }
   }
 
-  const addQuestion = async () => {
-    if (!newQuestion.trim() || !id) return
-    try {
-      const response = await api.post(`/marketplace-ms/items/${id}/preguntas`, { pregunta: newQuestion })
-      const newQ = response.data
-      setService(prev => prev ? {
-        ...prev,
-        item: {
-          ...prev.item,
-          preguntasFrecuentes: [...prev.item.preguntasFrecuentes, newQ]
-        }
-      } : null)
-      setNewQuestion('')
-      toast.success('Pregunta agregada exitosamente')
-    } catch (err) {
-      console.error('Error adding question:', err)
-      toast.error('Error al agregar la pregunta')
-    }
-  }
 
-  const deleteQuestion = async (preguntaId: number) => {
-    if (!id) return
-    try {
-      await api.delete(`/marketplace-ms/items/${id}/preguntas/${preguntaId}`)
-      setService(prev => prev ? {
-        ...prev,
-        item: {
-          ...prev.item,
-          preguntasFrecuentes: prev.item.preguntasFrecuentes.filter(q => q.id !== preguntaId)
-        }
-      } : null)
-      toast.success('Pregunta eliminada exitosamente')
-    } catch (err) {
-      console.error('Error deleting question:', err)
-      toast.error('Error al eliminar la pregunta')
-    }
-  }
 
   if (loading) {
     return (
@@ -188,7 +126,7 @@ function ServiceDetail() {
     )
   }
 
-  if (error || !service) {
+  if (error || !item) {
     return (
       <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex flex-col justify-center items-center">
         <p className="text-red-600 dark:text-red-400 mb-4">{error || 'Servicio no encontrado'}</p>
@@ -217,7 +155,7 @@ function ServiceDetail() {
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden">
           {/* Hero Image */}
           <div className="h-96 bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center">
-            <span className="text-9xl">{getCategoryIcon(service.item.clasificacion.tipo)}</span>
+            <span className="text-9xl">{getCategoryIcon(item.clasificacionId)}</span>
           </div>
 
           <div className="p-8">
@@ -225,15 +163,15 @@ function ServiceDetail() {
             <div className="flex items-start justify-between mb-6">
               <div>
                 <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2">
-                  {service.item.titulo}
+                  {item.titulo}
                 </h1>
                 <span className="inline-block bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-3 py-1 rounded-full text-sm">
-                  {service.item.clasificacion.tipo}
+                  {getCategoryName(item.clasificacionId)}
                 </span>
               </div>
               <div className="text-right">
                 <p className="text-3xl font-bold text-green-600 dark:text-green-400">
-                  ${service.item.clasificacion.precio.parsedValue}
+                  ${item.precio}
                 </p>
                 <p className="text-sm text-gray-500 dark:text-gray-400">por persona</p>
               </div>
@@ -243,7 +181,7 @@ function ServiceDetail() {
             <div className="mb-6">
               <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-3">Descripción</h2>
               <p className="text-gray-700 dark:text-gray-300 text-lg leading-relaxed">
-                {service.item.descripcion}
+                {item.descripcion}
               </p>
             </div>
 
@@ -252,80 +190,56 @@ function ServiceDetail() {
               <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
                 <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Ubicación</p>
                 <p className="text-lg font-semibold text-gray-900 dark:text-white">
-                  📍 {service.item.clasificacion.lugarInicio}
+                  📍 {item.lugarInicio}
                 </p>
               </div>
 
               <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
                 <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Capacidad</p>
                 <p className="text-lg font-semibold text-gray-900 dark:text-white">
-                  👥 {service.item.clasificacion.capacidadMaxima} personas
+                  👥 {item.capacidadMaxima} personas
                 </p>
               </div>
 
               <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
                 <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Calificación</p>
                 <p className="text-lg font-semibold text-gray-900 dark:text-white">
-                  ⭐ {(service.item.calificacionPromedio / 10).toFixed(1)} / 5.0
+                  ⭐ {(item.calificacionPromedio / 10).toFixed(1)} / 5.0
                 </p>
               </div>
 
               <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
                 <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Visualizaciones</p>
                 <p className="text-lg font-semibold text-gray-900 dark:text-white">
-                  👁️ {service.item.visualizaciones}
+                  👁️ {item.visualizaciones}
                 </p>
               </div>
 
               <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
                 <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Stock Disponible</p>
                 <p className="text-lg font-semibold text-gray-900 dark:text-white">
-                  📦 {service.item.stock}
+                  📦 {item.stock}
                 </p>
               </div>
 
               <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
                 <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Fecha de Publicación</p>
                 <p className="text-lg font-semibold text-gray-900 dark:text-white">
-                  📅 {new Date(service.item.fechaPublicacion).toLocaleDateString()}
+                  📅 {new Date(item.fechaPublicacion).toLocaleDateString()}
                 </p>
               </div>
             </div>
 
-            {/* Accommodation Details (if applicable) */}
-            {service.item.clasificacion.tipo === 'Alojamiento' && (
+            {/* Accommodation Details (if applicable) - Simplified since some fields may not be available in new API */}
+            {item.clasificacionId === 1 && (
               <div className="mb-6">
                 <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-3">
                   Detalles del Alojamiento
                 </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Tipo de Inmueble</p>
-                    <p className="text-lg font-semibold text-gray-900 dark:text-white">
-                      🏠 {service.item.clasificacion.tipoInmueble}
-                    </p>
-                  </div>
-
-                  <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Habitaciones</p>
-                    <p className="text-lg font-semibold text-gray-900 dark:text-white">
-                      🛏️ {service.item.clasificacion.numeroHabitaciones}
-                    </p>
-                  </div>
-
-                  <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Baños</p>
-                    <p className="text-lg font-semibold text-gray-900 dark:text-white">
-                      🚿 {service.item.clasificacion.numeroBanos}
-                    </p>
-                  </div>
-
-                  <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Check-in / Check-out</p>
-                    <p className="text-lg font-semibold text-gray-900 dark:text-white">
-                      📆 {new Date(service.item.clasificacion.fechaCheckin).toLocaleDateString()} - {new Date(service.item.clasificacion.fechaCheckout).toLocaleDateString()}
-                    </p>
-                  </div>
+                <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                  <p className="text-gray-700 dark:text-gray-300">
+                    Los detalles adicionales del alojamiento están disponibles contactando al proveedor.
+                  </p>
                 </div>
               </div>
             )}
@@ -335,76 +249,29 @@ function ServiceDetail() {
               <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-3">Disponibilidad</h2>
               <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
                 <p className="text-gray-700 dark:text-gray-300">
-                  Desde: <span className="font-semibold">{new Date(service.item.clasificacion.fechaDisponibilidadInicio).toLocaleDateString()}</span>
-                  {' '} hasta: <span className="font-semibold">{new Date(service.item.clasificacion.fechaDisponibilidadFin).toLocaleDateString()}</span>
+                  Desde: <span className="font-semibold">{new Date(item.fechaDisponibilidadInicio).toLocaleDateString()}</span>
+                  {' '} hasta: <span className="font-semibold">{new Date(item.fechaDisponibilidadFin).toLocaleDateString()}</span>
                 </p>
               </div>
             </div>
 
-            {/* Special Requirements */}
-            {service.item.clasificacion.requisitosEspeciales && service.item.clasificacion.requisitosEspeciales.length > 0 && (
-              <div className="mb-6">
-                <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-3">
-                  Requisitos Especiales
-                </h2>
-                <ul className="space-y-2">
-                  {service.item.clasificacion.requisitosEspeciales.map((req) => (
-                    <li key={req.id} className="flex items-start">
-                      <span className="text-blue-600 dark:text-blue-400 mr-2">•</span>
-                      <span className="text-gray-700 dark:text-gray-300">{req.requisito}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
+            {/* Special Requirements - Removed since not available in new API */}
 
-            {/* Frequent Questions */}
-            {service.item.preguntasFrecuentes && service.item.preguntasFrecuentes.length > 0 && (
-              <div className="mb-6">
-                <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-3">Preguntas Frecuentes</h2>
-                <ul className="space-y-2">
-                  {service.item.preguntasFrecuentes.map((q) => (
-                    <li key={q.id} className="flex items-start justify-between bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
-                      <span className="text-gray-700 dark:text-gray-300">{q.pregunta}</span>
-                      <Button variant="outline" size="sm" onClick={() => deleteQuestion(q.id)}>
-                        Eliminar
-                      </Button>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
+            {/* Frequent Questions - Now handled by separate component */}
+            <FrequentQuestions itemId={item.id} />
 
-            {/* Add New Question */}
+             {/* Location Map Placeholder - Simplified since coordinates may not be available in new API */}
             <div className="mb-6">
-              <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-3">Agregar Pregunta Frecuente</h2>
-              <div className="flex gap-2">
-                <Input
-                  value={newQuestion}
-                  onChange={(e) => setNewQuestion(e.target.value)}
-                  placeholder="Escribe la pregunta..."
-                  className="flex-1"
-                />
-                <Button onClick={addQuestion} disabled={!newQuestion.trim()}>
-                  Agregar
-                </Button>
+              <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-3">Ubicación</h2>
+              <div className="bg-gray-200 dark:bg-gray-700 h-64 rounded-lg flex items-center justify-center">
+                <p className="text-gray-600 dark:text-gray-400">
+                  📍 {item.lugarInicio}
+                </p>
               </div>
             </div>
 
-             {/* Location Map Placeholder */}
-            {service.item.clasificacion.lat && service.item.clasificacion.lng && (
-              <div className="mb-6">
-                <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-3">Ubicación</h2>
-                <div className="bg-gray-200 dark:bg-gray-700 h-64 rounded-lg flex items-center justify-center">
-                  <p className="text-gray-600 dark:text-gray-400">
-                    📍 Coordenadas: {service.item.clasificacion.lat}, {service.item.clasificacion.lng}
-                  </p>
-                </div>
-              </div>
-            )}
-
             {/* Quantity Selector */}
-            {service.item.stock > 0 && (
+            {item.stock > 0 && (
               <div className="mb-6">
                 <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-3">Cantidad</h2>
                 <div className="flex items-center gap-4">
@@ -421,21 +288,21 @@ function ServiceDetail() {
                     value={quantity}
                     onChange={(e) => {
                       const val = parseInt(e.target.value) || 1
-                      const maxQty = service.item.stock > 0 ? service.item.stock : Infinity
+                      const maxQty = item.stock > 0 ? item.stock : Infinity
                       setQuantity(Math.max(1, Math.min(val, maxQty)))
                     }}
                     className="w-20 text-center"
                     min="1"
-                    max={service.item.stock > 0 ? service.item.stock : undefined}
+                    max={item.stock > 0 ? item.stock : undefined}
                   />
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => {
-                      const maxQty = service.item.stock > 0 ? service.item.stock : Infinity
+                      const maxQty = item.stock > 0 ? item.stock : Infinity
                       setQuantity(Math.min(quantity + 1, maxQty))
                     }}
-                    disabled={service.item.stock > 0 && quantity >= service.item.stock}
+                    disabled={item.stock > 0 && quantity >= item.stock}
                   >
                     +
                   </Button>

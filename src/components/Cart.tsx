@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom"
 import { useAuth } from "@/contexts/AuthContext"
 import { Button } from "./ui/button"
 import { toast } from 'react-toastify'
-import api from "@/lib/api"
+import api, { itemsAPI } from "@/lib/api"
 
 interface CartItemAPI {
   id: number
@@ -17,9 +17,7 @@ interface ItemDetails {
   id: number
   titulo: string
   descripcion: string
-  clasificacion: {
-    tipo: string
-  }
+  clasificacionId: number
 }
 
 interface CartItem {
@@ -54,8 +52,13 @@ function Cart() {
           cartItemsAPI.map(async (cartItem) => {
             try {
               console.log('Fetching item details for ID:', cartItem.idItem)
-              const itemResponse = await api.get(`/marketplace-ms/items/${cartItem.idItem}`)
-              const itemDetails: ItemDetails = itemResponse.data.item
+              const itemResponse = await itemsAPI.getItem(cartItem.idItem)
+              const itemDetails: ItemDetails = {
+                id: itemResponse.data.id,
+                titulo: itemResponse.data.titulo,
+                descripcion: itemResponse.data.descripcion,
+                clasificacionId: itemResponse.data.clasificacionId
+              }
 
               return {
                 cartId: cartItem.id,
@@ -94,14 +97,14 @@ function Cart() {
     fetchCartItems()
   }, [])
 
-  const getCategoryIcon = (clasificacionTipo?: string) => {
-    const categoryMap: { [key: string]: string } = {
-      'Alojamiento': '🏨',
-      'Alimentacion': '🍽️',
-      'Transporte': '🚗',
-      'PaseosEcologicos': '🌿'
+  const getCategoryIcon = (clasificacionId?: number) => {
+    const categoryMap: { [key: number]: string } = {
+      1: '🏨', // Alojamiento
+      2: '🍽️', // Alimentación
+      3: '🚗', // Transporte
+      4: '🌿'  // Paseos Ecológicos
     }
-    return categoryMap[clasificacionTipo || ''] || '📋'
+    return categoryMap[clasificacionId || 0] || '📋'
   }
 
   const removeFromCart = async (cartId: number) => {
@@ -211,7 +214,7 @@ function Cart() {
                       {/* Product Image/Icon */}
                       <div className="flex-shrink-0">
                         <div className="w-16 h-16 bg-gradient-to-br from-blue-400 to-purple-500 rounded-lg flex items-center justify-center">
-                          <span className="text-2xl">{getCategoryIcon(item.itemDetails?.clasificacion?.tipo)}</span>
+                          <span className="text-2xl">{getCategoryIcon(item.itemDetails?.clasificacionId)}</span>
                         </div>
                       </div>
 

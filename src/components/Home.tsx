@@ -3,259 +3,173 @@ import { useNavigate } from "react-router-dom"
 import { useAuth } from "@/contexts/AuthContext"
 import { Button } from "./ui/button"
 import { Input } from "./ui/input"
-import api from "@/lib/api"
+import { itemsAPI, type ItemResponse } from "@/lib/api"
 
-interface Precio {
-  source: string
-  parsedValue: number
-}
-
-interface RequisitoEspecial {
-  id: number
-  requisito: string
-}
-
-interface ClasificacionSimple {
-  tipo: string
-  id: number
-  lugarInicio: string
-  precio: Precio
-  fechaDisponibilidadInicio: string
-  fechaDisponibilidadFin: string
-  capacidadMaxima: number
-  requisitosEspeciales: RequisitoEspecial[]
-  fechaCheckin: string
-  fechaCheckout: string
-  tipoInmueble: string
-  numeroBanos: number
-  numeroHabitaciones: number
-  lat: number
-  lng: number
-}
-
-interface Item {
-  id: number
-  clasificacion: {
-    tipo: string
-    id: number
-    lugarInicio: string
-    precio: Precio
-    fechaDisponibilidadInicio: string
-    fechaDisponibilidadFin: string
-    capacidadMaxima: number
-    requisitosEspeciales: RequisitoEspecial[]
-    fechaCheckin: string
-    fechaCheckout: string
-    tipoInmueble: string
-    numeroBanos: number
-    numeroHabitaciones: number
-    lat: number
-    lng: number
-  }
-  titulo: string
-  descripcion: string
-  fechaPublicacion: string
-  stock: number
-  visualizaciones: number
-  calificacionPromedio: number
-}
-
-interface Service {
-  item: Item
-  clasificacionData: ClasificacionSimple
-}
+// La nueva API devuelve directamente ItemResponse[], simplificando la estructura
 
 const categories = [
-  { id: 'todos', name: 'Todos', icon: '📋' },
-  { id: 'alojamiento', name: 'Alojamiento', icon: '🏨' },
-  { id: 'alimentacion', name: 'Alimentación', icon: '🍽️' },
-  { id: 'transporte', name: 'Transporte', icon: '🚗' },
-  { id: 'paseos-ecologicos', name: 'Paseos Ecológicos', icon: '🌿' }
+  { id: 'todos', name: 'Todos', icon: '📋', clasificacionId: null },
+  { id: 'alojamiento', name: 'Alojamiento', icon: '🏨', clasificacionId: 1 },
+  { id: 'alimentacion', name: 'Alimentación', icon: '🍽️', clasificacionId: 2 },
+  { id: 'transporte', name: 'Transporte', icon: '🚗', clasificacionId: 3 },
+  { id: 'paseos-ecologicos', name: 'Paseos Ecológicos', icon: '🌿', clasificacionId: 4 }
 ]
 
 function Home() {
   const navigate = useNavigate()
   const { user, logout, hasRole, hasAnyRole } = useAuth()
-  const [services, setServices] = useState<Service[]>([])
-  const [filteredServices, setFilteredServices] = useState<Service[]>([])
+  const [items, setItems] = useState<ItemResponse[]>([])
+  const [filteredItems, setFilteredItems] = useState<ItemResponse[]>([])
   const [selectedCategory, setSelectedCategory] = useState('todos')
   const [searchQuery, setSearchQuery] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
-  // Load services from API
+  // Load items from new API
   useEffect(() => {
-    const loadServices = async () => {
+    const loadItems = async () => {
       try {
         setLoading(true)
-        console.log('Loading all services via REST')
-        const response = await api.get('/marketplace-ms/items')
-
-        // Convert object response to array and map to ensure item.clasificacion is set
-        const servicesArray = Object.values(response.data).map((service: any) => ({
-          ...service,
-          item: {
-            ...service.item,
-            clasificacion: {
-              ...service.clasificacionData,
-              precio: typeof service.clasificacionData.precio === 'number'
-                ? { source: service.clasificacionData.precio.toString(), parsedValue: service.clasificacionData.precio }
-                : service.clasificacionData.precio
+        console.log('Loading all items via new API')
+        const response = await itemsAPI.getItems()
+        const rawData = response.data
+        console.log('Raw data received:', rawData, 'Type:', typeof rawData, 'IsArray:', Array.isArray(rawData))
+        
+        // Extraer items de la estructura legacy (backend devuelve {item: {...}, clasificacionData: {...}})
+        const itemsArray = Array.isArray(rawData) ? rawData.map((serviceData: any) => {
+          if (serviceData.item) {
+            // Estructura legacy - extraer item
+            return {
+              ...serviceData.item,
+              // Agregar campos de clasificacionData si no están en item
+              lugarInicio: serviceData.item.lugarInicio || serviceData.clasificacionData?.lugarInicio,
+              precio: serviceData.item.precio || serviceData.clasificacionData?.precio,
+              capacidadMaxima: serviceData.item.capacidadMaxima || serviceData.clasificacionData?.capacidadMaxima,
+              fechaDisponibilidadInicio: serviceData.item.fechaDisponibilidadInicio || serviceData.clasificacionData?.fechaDisponibilidadInicio,
+              fechaDisponibilidadFin: serviceData.item.fechaDisponibilidadFin || serviceData.clasificacionData?.fechaDisponibilidadFin
             }
+          } else {
+            // Nueva estructura plana
+            return serviceData
           }
-        })) as Service[]
-        setServices(servicesArray)
-        setFilteredServices(servicesArray)
+        }) : []
+        
+        console.log('Processed items:', itemsArray)
+        setItems(itemsArray)
+        setFilteredItems(itemsArray)
       } catch (err) {
-        console.error('Error loading services:', err)
+        console.error('Error loading items:', err)
         setError('Error al cargar los servicios')
       } finally {
         setLoading(false)
       }
     }
 
-    loadServices()
+    loadItems()
   }, [])
 
 
-  // Filter services by category
+  // Filter items by category using local filtering
   useEffect(() => {
-    const loadFilteredServices = async () => {
-      if (selectedCategory === 'todos') {
-        console.log('Showing all services (no filtering)')
-        setFilteredServices(services)
+    if (selectedCategory === 'todos') {
+      console.log('Showing all items (no filtering)')
+      setFilteredItems(items)
+    } else {
+      const selectedCat = categories.find(cat => cat.id === selectedCategory)
+      if (selectedCat?.clasificacionId) {
+        const filtered = items.filter(item => item.clasificacionId === selectedCat.clasificacionId)
+        console.log(`Filtering by classification ID ${selectedCat.clasificacionId}:`, filtered.length, 'items found')
+        setFilteredItems(filtered)
       } else {
-        // Map frontend category IDs to backend clasificacion types
-        const categoryTypeMap: { [key: string]: string } = {
-          'alojamiento': 'Alojamiento',
-          'alimentacion': 'Alimentacion',
-          'transporte': 'Transporte',
-          'paseos-ecologicos': 'PaseosEcologicos'
-        }
-
-        const targetCategoryType = categoryTypeMap[selectedCategory]
-        if (targetCategoryType) {
-          try {
-            setLoading(true)
-            setError('')
-            const query = `query { itemsPorClasificacion(clasificacion: "${targetCategoryType}") { id titulo descripcion lugarInicio precio calificacionPromedio visualizaciones capacidadMaxima clasificacion { tipo lugarInicio precio capacidadMaxima } } }`
-            console.log('Making GraphQL request for category:', targetCategoryType, 'with query:', query)
-            const response = await api.post('/marketplace-ms/graphql', { query })
-            console.log('GraphQL response:', response.data)
-            const items = response.data.data.itemsPorClasificacion
-
-            // Map to Service[] structure
-            const mappedServices: Service[] = items.map((item: any) => ({
-              item: {
-                id: item.id,
-                titulo: item.titulo,
-                descripcion: item.descripcion,
-                fechaPublicacion: '', // Not in query, set default
-                stock: 0, // Not in query, set default
-                visualizaciones: item.visualizaciones,
-                calificacionPromedio: item.calificacionPromedio,
-                clasificacion: {
-                  tipo: item.clasificacion.tipo,
-                  id: 0, // Not in query, set default
-                  lugarInicio: item.clasificacion.lugarInicio,
-                  precio: { source: '', parsedValue: item.clasificacion.precio },
-                  fechaDisponibilidadInicio: '', // Not in query
-                  fechaDisponibilidadFin: '', // Not in query
-                  capacidadMaxima: item.clasificacion.capacidadMaxima,
-                  requisitosEspeciales: [], // Not in query
-                  fechaCheckin: '', // Not in query
-                  fechaCheckout: '', // Not in query
-                  tipoInmueble: '', // Not in query
-                  numeroBanos: 0, // Not in query
-                  numeroHabitaciones: 0, // Not in query
-                  lat: 0, // Not in query
-                  lng: 0 // Not in query
-                }
-              },
-              clasificacionData: {
-                tipo: item.clasificacion.tipo,
-                id: 0, // Not in query
-                lugarInicio: item.clasificacion.lugarInicio,
-                precio: { source: '', parsedValue: item.clasificacion.precio },
-                fechaDisponibilidadInicio: '', // Not in query
-                fechaDisponibilidadFin: '', // Not in query
-                capacidadMaxima: item.clasificacion.capacidadMaxima,
-                requisitosEspeciales: [], // Not in query
-                fechaCheckin: '', // Not in query
-                fechaCheckout: '', // Not in query
-                tipoInmueble: '', // Not in query
-                numeroBanos: 0, // Not in query
-                numeroHabitaciones: 0, // Not in query
-                lat: 0, // Not in query
-                lng: 0 // Not in query
-              }
-            }))
-
-            console.log('Mapped services:', mappedServices.length, 'items')
-            setFilteredServices(mappedServices)
-          } catch (err) {
-            console.error('Error filtering services:', err)
-            setError('Error al filtrar servicios')
-          } finally {
-            setLoading(false)
-          }
-        } else {
-          setFilteredServices(services)
-        }
+        setFilteredItems(items)
       }
     }
+  }, [selectedCategory, items])
 
-    loadFilteredServices()
-  }, [selectedCategory])
-
-  const getCategoryIcon = (clasificacionTipo: string) => {
-    const categoryMap: { [key: string]: string } = {
-      'Alojamiento': '🏨',
-      'Alimentacion': '🍽️',
-      'Transporte': '🚗',
-      'PaseosEcologicos': '🌿'
+  const getCategoryIcon = (clasificacionId: number) => {
+    const categoryMap: { [key: number]: string } = {
+      1: '🏨', // Alojamiento
+      2: '🍽️', // Alimentación
+      3: '🚗', // Transporte
+      4: '🌿'  // Paseos Ecológicos
     }
-    return categoryMap[clasificacionTipo] || '📋'
+    return categoryMap[clasificacionId] || '📋'
   }
 
-  const getCategoryName = (clasificacionTipo: string) => {
-    return clasificacionTipo
+  const getCategoryName = (clasificacionId: number) => {
+    const categoryMap: { [key: number]: string } = {
+      1: 'Alojamiento',
+      2: 'Alimentación', 
+      3: 'Transporte',
+      4: 'Paseos Ecológicos'
+    }
+    return categoryMap[clasificacionId] || 'Desconocido'
   }
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) {
-      // If search is empty, reload all services
-      const loadServices = async () => {
-        try {
-          setLoading(true)
-          const response = await api.get('http://localhost:8080/marketplace-ms/items')
-          const servicesArray = Object.values(response.data) as Service[]
-          setServices(servicesArray)
-          setFilteredServices(servicesArray)
-        } catch (err) {
-          console.error('Error loading services:', err)
-          setError('Error al cargar los servicios')
-        } finally {
-          setLoading(false)
-        }
+      // If search is empty, reload all items
+      try {
+        setLoading(true)
+        const response = await itemsAPI.getItems()
+        const rawData = response.data
+        
+        // Extraer items de la estructura legacy
+        const itemsArray = Array.isArray(rawData) ? rawData.map((serviceData: any) => {
+          if (serviceData.item) {
+            return {
+              ...serviceData.item,
+              lugarInicio: serviceData.item.lugarInicio || serviceData.clasificacionData?.lugarInicio,
+              precio: serviceData.item.precio || serviceData.clasificacionData?.precio,
+              capacidadMaxima: serviceData.item.capacidadMaxima || serviceData.clasificacionData?.capacidadMaxima,
+              fechaDisponibilidadInicio: serviceData.item.fechaDisponibilidadInicio || serviceData.clasificacionData?.fechaDisponibilidadInicio,
+              fechaDisponibilidadFin: serviceData.item.fechaDisponibilidadFin || serviceData.clasificacionData?.fechaDisponibilidadFin
+            }
+          } else {
+            return serviceData
+          }
+        }) : []
+        
+        setItems(itemsArray)
+        setFilteredItems(itemsArray)
+      } catch (err) {
+        console.error('Error loading items:', err)
+        setError('Error al cargar los servicios')
+      } finally {
+        setLoading(false)
       }
-      loadServices()
       return
     }
 
     try {
       setLoading(true)
       setError('')
-      console.log('Searching services with query:', searchQuery.trim())
-      const response = await api.get(`http://localhost:8080/marketplace-ms/items/search?query=${encodeURIComponent(searchQuery.trim())}`)
-
-      // Convert object response to array
-      const searchResults = Object.values(response.data) as Service[]
-      setServices(searchResults)
-      setFilteredServices(searchResults)
+      console.log('Searching items with query:', searchQuery.trim())
+      const response = await itemsAPI.searchItems(searchQuery.trim())
+      const rawData = response.data
+      
+      // Extraer items de la estructura legacy
+      const itemsArray = Array.isArray(rawData) ? rawData.map((serviceData: any) => {
+        if (serviceData.item) {
+          return {
+            ...serviceData.item,
+            lugarInicio: serviceData.item.lugarInicio || serviceData.clasificacionData?.lugarInicio,
+            precio: serviceData.item.precio || serviceData.clasificacionData?.precio,
+            capacidadMaxima: serviceData.item.capacidadMaxima || serviceData.clasificacionData?.capacidadMaxima,
+            fechaDisponibilidadInicio: serviceData.item.fechaDisponibilidadInicio || serviceData.clasificacionData?.fechaDisponibilidadInicio,
+            fechaDisponibilidadFin: serviceData.item.fechaDisponibilidadFin || serviceData.clasificacionData?.fechaDisponibilidadFin
+          }
+        } else {
+          return serviceData
+        }
+      }) : []
+      
+      console.log('Search results processed:', itemsArray)
+      setItems(itemsArray)
+      setFilteredItems(itemsArray)
       setSelectedCategory('todos') // Reset category filter when searching
     } catch (err) {
-      console.error('Error searching services:', err)
+      console.error('Error searching items:', err)
       setError('Error al buscar servicios')
     } finally {
       setLoading(false)
@@ -335,7 +249,7 @@ function Home() {
           <div className="flex flex-wrap gap-3">
             {categories.map((category) => (
               <Button
-                key={category.id}
+                key={`category-${category.id}`}
                 onClick={() => setSelectedCategory(category.id)}
                 variant={selectedCategory === category.id ? "default" : "outline"}
                 className="flex items-center gap-2"
@@ -354,7 +268,7 @@ function Home() {
               Servicios Disponibles
             </h2>
             <p className="text-gray-600 dark:text-gray-400">
-              {filteredServices.length} servicio{filteredServices.length !== 1 ? 's' : ''} encontrado{filteredServices.length !== 1 ? 's' : ''}
+              {filteredItems.length} servicio{filteredItems.length !== 1 ? 's' : ''} encontrado{filteredItems.length !== 1 ? 's' : ''}
             </p>
           </div>
 
@@ -367,7 +281,7 @@ function Home() {
             <div className="text-center py-12">
               <p className="text-red-600 dark:text-red-400">{error}</p>
             </div>
-          ) : filteredServices.length === 0 ? (
+          ) : filteredItems.length === 0 ? (
             <div className="text-center py-12">
               <p className="text-gray-600 dark:text-gray-400">
                 No se encontraron servicios en esta categoría
@@ -375,55 +289,55 @@ function Home() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredServices.map((service) => (
+              {filteredItems.filter(item => item && item.id).map((item) => (
                 <div
-                  key={service.item.id}
+                  key={`item-${item.id}`}
                   className="bg-white dark:bg-gray-800 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden"
                 >
                   {/* Service Image Placeholder */}
                   <div className="h-48 bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center">
-                    <span className="text-4xl">{getCategoryIcon(service.item.clasificacion.tipo)}</span>
+                    <span className="text-4xl">{getCategoryIcon(item.clasificacionId)}</span>
                   </div>
 
                   <div className="p-6">
                     <div className="flex items-start justify-between mb-2">
                       <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                        {service.item.titulo}
+                        {item.titulo}
                       </h3>
                       <span className="text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-full text-gray-600 dark:text-gray-300">
-                        {getCategoryName(service.item.clasificacion.tipo)}
+                        {getCategoryName(item.clasificacionId)}
                       </span>
                     </div>
 
                     <p className="text-gray-600 dark:text-gray-300 text-sm mb-4">
-                      {service.item.descripcion}
+                      {item.descripcion}
                     </p>
 
                     <div className="flex items-center justify-between mb-4">
                       <span className="text-sm text-gray-500 dark:text-gray-400">
-                        📍 {service.item.clasificacion.lugarInicio}
+                        📍 {item.lugarInicio}
                       </span>
                       <span className="text-sm text-yellow-600 dark:text-yellow-400">
-                        ⭐ {(service.item.calificacionPromedio / 10).toFixed(1)}
+                        ⭐ {(item.calificacionPromedio / 10).toFixed(1)}
                       </span>
                     </div>
 
                     <div className="flex items-center justify-between mb-4">
                       <span className="text-sm text-gray-500 dark:text-gray-400">
-                        👁️ {service.item.visualizaciones} visualizaciones
+                        👁️ {item.visualizaciones} visualizaciones
                       </span>
                       <span className="text-sm text-blue-600 dark:text-blue-400">
-                        🏠 {service.item.clasificacion.capacidadMaxima} personas
+                        🏠 {item.capacidadMaxima} personas
                       </span>
                     </div>
 
                     <div className="flex items-center justify-between">
                       <span className="text-lg font-bold text-green-600 dark:text-green-400">
-                        ${service.item.clasificacion.precio.parsedValue}
+                        ${item.precio}
                       </span>
                       <Button
                         size="sm"
-                        onClick={() => navigate(`/service/${service.item.id}`)}
+                        onClick={() => navigate(`/service/${item.id}`)}
                       >
                         {hasRole('cliente') ? 'Reservar' : 'Ver Detalles'}
                       </Button>
