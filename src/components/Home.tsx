@@ -210,17 +210,24 @@ function Home() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Role-based content */}
-        {hasRole('cliente') && (
+        {hasRole('CLIENTE') && (
           <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
             <h2 className="text-blue-800 dark:text-blue-200 font-semibold mb-2">Panel de Cliente</h2>
             <p className="text-sm text-blue-600 dark:text-blue-300">Explora y reserva servicios turísticos</p>
           </div>
         )}
 
-        {hasRole('proveedor') && (
+        {hasRole('PROVEEDOR') && (
           <div className="mb-6 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-            <h2 className="text-green-800 dark:text-green-200 font-semibold mb-2">Panel de Proveedor</h2>
-            <p className="text-sm text-green-600 dark:text-green-300">Gestiona tus servicios y ofertas</p>
+            <div className="flex justify-between items-center">
+              <div>
+                <h2 className="text-green-800 dark:text-green-200 font-semibold mb-2">Panel de Proveedor</h2>
+                <p className="text-sm text-green-600 dark:text-green-300">Gestiona tus servicios y ofertas</p>
+              </div>
+              <Button onClick={() => navigate('/create-service')} className="bg-green-600 hover:bg-green-700">
+                + Crear Servicio
+              </Button>
+            </div>
           </div>
         )}
 
@@ -339,7 +346,7 @@ function Home() {
                         size="sm"
                         onClick={() => navigate(`/service/${item.id}`)}
                       >
-                        {hasRole('cliente') ? 'Reservar' : 'Ver Detalles'}
+                        {hasRole('CLIENTE') ? 'Reservar' : 'Ver Detalles'}
                       </Button>
                     </div>
                   </div>
@@ -350,7 +357,7 @@ function Home() {
         </div>
 
         {/* Shared features */}
-        {hasAnyRole(['cliente', 'proveedor']) && (
+        {hasAnyRole(['CLIENTE', 'PROVEEDOR']) && (
           <div className="p-6 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg">
             <h3 className="text-purple-800 dark:text-purple-200 font-semibold mb-2">
               Funciones Compartidas
@@ -362,8 +369,10 @@ function Home() {
               <Button variant="outline" size="sm">Buscar Servicios</Button>
               <Button variant="outline" size="sm">Mis Favoritos</Button>
               <Button variant="outline" size="sm">Ayuda</Button>
-              {hasRole('proveedor') && (
-                <Button variant="outline" size="sm">Agregar Servicio</Button>
+              {hasRole('PROVEEDOR') && (
+                <Button variant="outline" size="sm" onClick={() => navigate('/create-service')}>
+                  Gestionar Servicios
+                </Button>
               )}
             </div>
           </div>

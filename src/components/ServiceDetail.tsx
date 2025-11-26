@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react"
 import { useParams, useNavigate } from "react-router-dom"
+import { useAuth } from "@/contexts/AuthContext"
 import { Button } from "./ui/button"
 import { Input } from "./ui/input"
 import { toast } from 'react-toastify'
 import api, { itemsAPI, type ItemResponse } from "@/lib/api"
 import FrequentQuestions from "./FrequentQuestions"
+import Reviews from "./Reviews"
 
 
 
@@ -14,6 +16,7 @@ import FrequentQuestions from "./FrequentQuestions"
 function ServiceDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const { hasRole } = useAuth()
 
   const [item, setItem] = useState<ItemResponse | null>(null)
   const [loading, setLoading] = useState(true)
@@ -260,6 +263,9 @@ function ServiceDetail() {
             {/* Frequent Questions - Now handled by separate component */}
             <FrequentQuestions itemId={item.id} />
 
+            {/* Reviews - Now handled by separate component */}
+            <Reviews itemId={item.id} />
+
              {/* Location Map Placeholder - Simplified since coordinates may not be available in new API */}
             <div className="mb-6">
               <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-3">Ubicación</h2>
@@ -270,8 +276,8 @@ function ServiceDetail() {
               </div>
             </div>
 
-            {/* Quantity Selector */}
-            {item.stock > 0 && (
+            {/* Quantity Selector - Only for clients */}
+            {hasRole('CLIENTE') && item.stock > 0 && (
               <div className="mb-6">
                 <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-3">Cantidad</h2>
                 <div className="flex items-center gap-4">
@@ -312,17 +318,38 @@ function ServiceDetail() {
 
             {/* Action Buttons */}
             <div className="flex gap-4 mt-8">
-              <Button
-                size="lg"
-                className="flex-1"
-                onClick={addToCart}
-                disabled={addingToCart}
-              >
-                {addingToCart ? 'Agregando...' : 'Agregar al Carrito'}
-              </Button>
-              <Button size="lg" variant="outline" className="flex-1">
-                Contactar Proveedor
-              </Button>
+              {hasRole('CLIENTE') && (
+                <>
+                  <Button
+                    size="lg"
+                    className="flex-1"
+                    onClick={addToCart}
+                    disabled={addingToCart}
+                  >
+                    {addingToCart ? 'Agregando...' : 'Agregar al Carrito'}
+                  </Button>
+                  <Button size="lg" variant="outline" className="flex-1">
+                    Contactar Proveedor
+                  </Button>
+                </>
+              )}
+
+              {hasRole('PROVEEDOR') && (
+                <>
+                  <Button size="lg" className="flex-1" variant="outline">
+                    Editar Servicio
+                  </Button>
+                  <Button size="lg" variant="outline" className="flex-1">
+                    Ver Estadísticas
+                  </Button>
+                </>
+              )}
+
+              {!hasRole('CLIENTE') && !hasRole('PROVEEDOR') && (
+                <Button size="lg" className="w-full">
+                  Ver Detalles
+                </Button>
+              )}
             </div>
           </div>
         </div>

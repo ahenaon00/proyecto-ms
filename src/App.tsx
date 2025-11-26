@@ -5,6 +5,7 @@ import Home from "./components/Home"
 import RegisterForm from "./components/RegisterForm"
 import ServiceDetail from "./components/ServiceDetail"
 import Cart from "./components/Cart"
+import CreateService from "./components/CreateService"
 import AuthProvider, { useAuth } from "./contexts/AuthContext"
 import { ToastContainer } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
@@ -33,6 +34,7 @@ function AppContent() {
       <Route path="/" element={<Home />} />
       <Route path="/service/:id" element={<ServiceDetail />} />
       <Route path="/cart" element={<Cart />} />
+      <Route path="/create-service" element={<CreateService />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )

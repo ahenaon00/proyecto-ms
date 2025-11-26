@@ -94,10 +94,10 @@ function FrequentQuestions({ itemId }: FrequentQuestionsProps) {
                 <div className="flex-1">
                   <span className="text-gray-700 dark:text-gray-300">{pregunta.pregunta}</span>
                 </div>
-                {hasRole('proveedor') && (
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
+                {hasRole('PROVEEDOR') && (
+                  <Button
+                    variant="outline"
+                    size="sm"
                     onClick={() => deleteQuestion(pregunta.id)}
                     className="ml-3 text-red-600 hover:text-red-700 hover:bg-red-50"
                   >
@@ -117,7 +117,7 @@ function FrequentQuestions({ itemId }: FrequentQuestionsProps) {
       )}
 
       {/* Formulario para agregar nueva pregunta (solo proveedores) */}
-      {hasRole('proveedor') && (
+      {hasRole('PROVEEDOR') && (
         <div>
           <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
             Agregar Nueva Pregunta

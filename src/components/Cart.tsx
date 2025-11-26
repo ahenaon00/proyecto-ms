@@ -32,6 +32,7 @@ interface CartItem {
 
 function Cart() {
   const navigate = useNavigate()
+  const { hasRole } = useAuth()
   const [cartItems, setCartItems] = useState<CartItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -107,12 +108,12 @@ function Cart() {
     return categoryMap[clasificacionId || 0] || '📋'
   }
 
-  const removeFromCart = async (cartId: number) => {
+  const removeFromCart = async (_cartId: number) => {
     // TODO: Implement remove from cart functionality
     toast.info('Funcionalidad de eliminar próximamente')
   }
 
-  const updateQuantity = async (cartId: number, newQuantity: number) => {
+  const updateQuantity = async (_cartId: number, newQuantity: number) => {
     if (newQuantity < 1) return
 
     try {
@@ -137,7 +138,7 @@ function Cart() {
         uid: "uid",
         itemIds: cartItems.map(item => item.itemId)
       }
-      const response = await api.post('/transaction-ms/transaccion/process-payment', paymentData)
+      await api.post('/transaction-ms/transaccion/process-payment', paymentData)
       toast.success('Pago procesado exitosamente!')
     } catch (err: any) {
       console.error('Error processing payment:', err)
@@ -161,6 +162,26 @@ function Cart() {
       <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex flex-col justify-center items-center">
         <p className="text-red-600 dark:text-red-400 mb-4">{error}</p>
         <Button onClick={() => navigate('/')}>Volver al inicio</Button>
+      </div>
+    )
+  }
+
+  // Role-based access control
+  if (!hasRole('CLIENTE')) {
+    return (
+      <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex flex-col justify-center items-center">
+        <div className="text-center">
+          <div className="text-6xl mb-4">🔒</div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+            Acceso Restringido
+          </h1>
+          <p className="text-gray-600 dark:text-gray-400 mb-6">
+            Solo los clientes pueden acceder al carrito de compras.
+          </p>
+          <Button onClick={() => navigate('/')}>
+            Volver al Inicio
+          </Button>
+        </div>
       </div>
     )
   }

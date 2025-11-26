@@ -4,6 +4,18 @@ import { Input } from "./ui/input"
 import { useAuth } from "@/contexts/AuthContext"
 import api from "@/lib/api"
 
+// Helper function to decode JWT payload
+const decodeJWT = (token: string) => {
+  try {
+    const payload = token.split('.')[1];
+    const decoded = JSON.parse(atob(payload));
+    return decoded;
+  } catch (error) {
+    console.error('Error decoding JWT:', error);
+    return null;
+  }
+};
+
 interface LoginProps {
   onSwitchToRegister?: () => void
 }
@@ -29,7 +41,14 @@ function Login({ onSwitchToRegister }: LoginProps) {
       const endpoint = isRegister ? '/users/register' : '/auth/login'
       const response = await api.post(endpoint, { email, password })
       const { accessToken, user } = response.data
-      setToken(accessToken, user)
+      const decodedToken = decodeJWT(accessToken);
+      // Extract roles from JWT
+      const rolesFromToken = decodedToken?.realm_access?.roles || [];
+      // Update user object with roles from token
+      const updatedUser = user ? { ...user, roles: rolesFromToken } : { id: '', email: '', roles: rolesFromToken };
+      console.log('Authentication successful:', { user: updatedUser, roles: updatedUser.roles })
+      console.log('Decoded JWT payload:', decodedToken)
+      setToken(accessToken, updatedUser)
     } catch (err: any) {
       if (err.response?.status === 401) {
         setError("Invalid credentials")

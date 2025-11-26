@@ -12,6 +12,18 @@ const TOKEN_EXPIRY_KEY = 'auth_token_expiry';
 const USER_KEY = 'auth_user';
 const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes
 
+// Helper function to decode JWT payload
+const decodeJWT = (token: string) => {
+  try {
+    const payload = token.split('.')[1];
+    const decoded = JSON.parse(atob(payload));
+    return decoded;
+  } catch (error) {
+    console.error('Error decoding JWT:', error);
+    return null;
+  }
+};
+
 interface User {
     id: string;
     email: string;
@@ -54,6 +66,13 @@ const AuthProvider = ({ children }: { children: ReactNode }) => {
     const setToken = (newToken: string | null, newUser?: User | null) => {
         setTokenState(newToken);
         setUserState(newUser ?? null);
+        if (newToken) {
+            const decodedToken = decodeJWT(newToken);
+            console.log('Setting token in AuthContext, decoded payload:', decodedToken);
+        }
+        if (newUser) {
+            console.log('Setting user in AuthContext:', { user: newUser, roles: newUser.roles });
+        }
 
         if (newToken) {
             // Store token, user, and expiry time
@@ -107,6 +126,9 @@ const AuthProvider = ({ children }: { children: ReactNode }) => {
                     const userData = storedUser ? JSON.parse(storedUser) : null;
                     setTokenState(storedToken);
                     setUserState(userData);
+                    if (userData) {
+                        console.log('Loaded user from localStorage:', { user: userData, roles: userData.roles });
+                    }
                 } else {
                     // Token expired, clear stored data
                     localStorage.removeItem(TOKEN_KEY);
