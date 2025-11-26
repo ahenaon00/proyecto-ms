@@ -261,8 +261,8 @@ function ServiceDetail() {
               </div>
             </div>
 
-            {/* Weather Information */}
-            {clasificacionData && (
+            {/* Weather Information - Only for Alojamiento */}
+            {clasificacionData && item.clasificacionId === 1 && (
               <div className="mb-6">
                 <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-3">Información del Clima</h2>
                 <div className="bg-gray-50 dark:bg-gray-700 rounded-lg overflow-hidden">
