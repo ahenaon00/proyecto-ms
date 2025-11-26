@@ -50,7 +50,38 @@ interface AlojamientoData extends BaseServiceData {
   direccion: string
 }
 
-type ServiceData = AlimentacionData | AlojamientoData
+// Transporte specific fields
+interface TransporteData extends BaseServiceData {
+  lugarDestino: string
+  horaSalida: string
+  horaLlegada: string
+  tipoTransporte: string
+  duracionViaje: number
+  rutaGps: string
+  requisitosEspeciales: Array<{ id: string | null; requisito: string }>
+  maps: {
+    googleMaps: string | null
+    openStreetMaps: string | null
+  }
+}
+
+// PaseosEcologicos specific fields
+interface PaseosEcologicosData extends BaseServiceData {
+  duracionHoras: number
+  nivelDificultad: string
+  equipoIncluido: boolean
+  guiaIncluido: boolean
+  edadMinima: number
+  puntoEncuentro: string
+  rutaEncuentro: string
+  requisitosEspeciales: Array<{ id: string | null; requisito: string }>
+  maps: {
+    googleMaps: string | null
+    openStreetMaps: string | null
+  }
+}
+
+type ServiceData = AlimentacionData | AlojamientoData | TransporteData | PaseosEcologicosData
 
 function CreateService() {
   const navigate = useNavigate()
@@ -94,6 +125,23 @@ function CreateService() {
   const [lng, setLng] = useState('')
   const [direccion, setDireccion] = useState('')
 
+  // Transporte specific fields
+  const [lugarDestino, setLugarDestino] = useState('')
+  const [horaSalida, setHoraSalida] = useState('')
+  const [horaLlegada, setHoraLlegada] = useState('')
+  const [tipoTransporte, setTipoTransporte] = useState('')
+  const [duracionViaje, setDuracionViaje] = useState('')
+  const [rutaGps, setRutaGps] = useState('')
+
+  // PaseosEcologicos specific fields
+  const [duracionHoras, setDuracionHoras] = useState('')
+  const [nivelDificultad, setNivelDificultad] = useState('')
+  const [equipoIncluido, setEquipoIncluido] = useState(false)
+  const [guiaIncluido, setGuiaIncluido] = useState(false)
+  const [edadMinima, setEdadMinima] = useState('')
+  const [puntoEncuentro, setPuntoEncuentro] = useState('')
+  const [rutaEncuentro, setRutaEncuentro] = useState('')
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -115,9 +163,17 @@ function CreateService() {
 
     if (!validateDate(fechaDisponibilidadInicio, 'Fecha Disponibilidad Inicio')) return;
     if (!validateDate(fechaDisponibilidadFin, 'Fecha Disponibilidad Fin')) return;
+
     if (selectedType === 'Alojamiento') {
       if (!validateDate(fechaCheckin, 'Fecha Check-in')) return;
       if (!validateDate(fechaCheckout, 'Fecha Check-out')) return;
+    }
+
+    if (selectedType === 'Transporte') {
+      if (!horaSalida || !horaLlegada) {
+        toast.error('Hora de salida y llegada son requeridas para transporte');
+        return;
+      }
     }
 
     // Validate item fields
@@ -173,6 +229,51 @@ function CreateService() {
           lng: parseFloat(lng),
           direccion
         } as AlojamientoData
+      } else if (selectedType === 'Transporte') {
+        serviceData = {
+          tipo: selectedType,
+          lugarInicio,
+          precio: parseFloat(precio),
+          fechaDisponibilidadInicio: new Date(fechaDisponibilidadInicio + 'T00:00:00').toISOString(),
+          fechaDisponibilidadFin: new Date(fechaDisponibilidadFin + 'T00:00:00').toISOString(),
+          capacidadMaxima: parseInt(capacidadMaxima),
+          usuarioId: user?.id || "proveedor123",
+          paisDestino,
+          lugarDestino,
+          horaSalida: new Date(horaSalida).toISOString(),
+          horaLlegada: new Date(horaLlegada).toISOString(),
+          tipoTransporte,
+          duracionViaje: parseInt(duracionViaje),
+          rutaGps,
+          requisitosEspeciales: [],
+          maps: {
+            googleMaps: null,
+            openStreetMaps: null
+          }
+        } as TransporteData
+      } else if (selectedType === 'PaseosEcologicos') {
+        serviceData = {
+          tipo: selectedType,
+          lugarInicio,
+          precio: parseFloat(precio),
+          fechaDisponibilidadInicio: new Date(fechaDisponibilidadInicio + 'T00:00:00').toISOString(),
+          fechaDisponibilidadFin: new Date(fechaDisponibilidadFin + 'T00:00:00').toISOString(),
+          capacidadMaxima: parseInt(capacidadMaxima),
+          usuarioId: user?.id || "proveedor123",
+          paisDestino,
+          duracionHoras: parseInt(duracionHoras),
+          nivelDificultad,
+          equipoIncluido,
+          guiaIncluido,
+          edadMinima: parseInt(edadMinima),
+          puntoEncuentro,
+          rutaEncuentro,
+          requisitosEspeciales: [],
+          maps: {
+            googleMaps: null,
+            openStreetMaps: null
+          }
+        } as PaseosEcologicosData
       } else {
         throw new Error('Tipo de servicio no soportado')
       }
@@ -604,6 +705,212 @@ function CreateService() {
                       onChange={(e) => setLng(e.target.value)}
                       placeholder="-74.0721"
                     />
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* Transporte Specific Fields */}
+            {selectedType === 'Transporte' && (
+              <>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white border-b pb-2">
+                  Detalles de Transporte
+                </h3>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Lugar de Destino *
+                    </label>
+                    <Input
+                      type="text"
+                      value={lugarDestino}
+                      onChange={(e) => setLugarDestino(e.target.value)}
+                      placeholder="Ciudad de destino"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Tipo de Transporte *
+                    </label>
+                    <select
+                      value={tipoTransporte}
+                      onChange={(e) => setTipoTransporte(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                      required
+                    >
+                      <option value="">Seleccione tipo</option>
+                      <option value="Bus">Bus</option>
+                      <option value="Avión">Avión</option>
+                      <option value="Taxi">Taxi</option>
+                      <option value="Transporte Privado">Transporte Privado</option>
+                      <option value="Barco">Barco</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Hora de Salida *
+                    </label>
+                    <Input
+                      type="datetime-local"
+                      value={horaSalida}
+                      onChange={(e) => setHoraSalida(e.target.value)}
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Hora de Llegada *
+                    </label>
+                    <Input
+                      type="datetime-local"
+                      value={horaLlegada}
+                      onChange={(e) => setHoraLlegada(e.target.value)}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Duración del Viaje (minutos) *
+                    </label>
+                    <Input
+                      type="number"
+                      value={duracionViaje}
+                      onChange={(e) => setDuracionViaje(e.target.value)}
+                      placeholder="480"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Ruta GPS
+                    </label>
+                    <Input
+                      type="text"
+                      value={rutaGps}
+                      onChange={(e) => setRutaGps(e.target.value)}
+                      placeholder="Descripción de la ruta"
+                    />
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* PaseosEcologicos Specific Fields */}
+            {selectedType === 'PaseosEcologicos' && (
+              <>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white border-b pb-2">
+                  Detalles de Paseos Ecológicos
+                </h3>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Duración (horas) *
+                    </label>
+                    <Input
+                      type="number"
+                      value={duracionHoras}
+                      onChange={(e) => setDuracionHoras(e.target.value)}
+                      placeholder="6"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Nivel de Dificultad *
+                    </label>
+                    <select
+                      value={nivelDificultad}
+                      onChange={(e) => setNivelDificultad(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                      required
+                    >
+                      <option value="">Seleccione nivel</option>
+                      <option value="Fácil">Fácil</option>
+                      <option value="Medio">Medio</option>
+                      <option value="Difícil">Difícil</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Edad Mínima *
+                    </label>
+                    <Input
+                      type="number"
+                      value={edadMinima}
+                      onChange={(e) => setEdadMinima(e.target.value)}
+                      placeholder="12"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Punto de Encuentro *
+                    </label>
+                    <Input
+                      type="text"
+                      value={puntoEncuentro}
+                      onChange={(e) => setPuntoEncuentro(e.target.value)}
+                      placeholder="Parque Bocagrande"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Ruta de Encuentro *
+                    </label>
+                    <Input
+                      type="text"
+                      value={rutaEncuentro}
+                      onChange={(e) => setRutaEncuentro(e.target.value)}
+                      placeholder="Av. San Martín #2-34"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="equipoIncluido"
+                      checked={equipoIncluido}
+                      onChange={(e) => setEquipoIncluido(e.target.checked)}
+                      className="rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500"
+                    />
+                    <label htmlFor="equipoIncluido" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Equipo incluido
+                    </label>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="guiaIncluido"
+                      checked={guiaIncluido}
+                      onChange={(e) => setGuiaIncluido(e.target.checked)}
+                      className="rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500"
+                    />
+                    <label htmlFor="guiaIncluido" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Guía incluido
+                    </label>
                   </div>
                 </div>
               </>
