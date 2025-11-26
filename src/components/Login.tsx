@@ -40,15 +40,19 @@ function Login({ onSwitchToRegister }: LoginProps) {
     try {
       const endpoint = isRegister ? '/users/register' : '/auth/login'
       const response = await api.post(endpoint, { email, password })
-      const { accessToken, user } = response.data
+      const { accessToken, refreshToken, user } = response.data
       const decodedToken = decodeJWT(accessToken);
       // Extract roles from JWT
       const rolesFromToken = decodedToken?.realm_access?.roles || [];
-      // Update user object with roles from token
-      const updatedUser = user ? { ...user, roles: rolesFromToken } : { id: '', email: '', roles: rolesFromToken };
+      // Extract user info from JWT if not provided by backend
+      const updatedUser = user ? { ...user, roles: rolesFromToken } : { 
+        id: decodedToken?.sub || '', 
+        email: decodedToken?.email || decodedToken?.preferred_username || email, 
+        roles: rolesFromToken 
+      };
       console.log('Authentication successful:', { user: updatedUser, roles: updatedUser.roles })
       console.log('Decoded JWT payload:', decodedToken)
-      setToken(accessToken, updatedUser)
+      setToken(accessToken, updatedUser, refreshToken)
     } catch (err: any) {
       if (err.response?.status === 401) {
         setError("Invalid credentials")
