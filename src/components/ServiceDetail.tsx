@@ -366,7 +366,7 @@ function ServiceDetail() {
               {clasificacionData?.maps?.googleMaps ? (
                 <div className="bg-gray-200 dark:bg-gray-700 h-96 rounded-lg overflow-hidden">
                   <iframe
-                    src={`https://www.google.com/maps/embed/v1/place?key=YOUR_API_KEY&q=${encodeURIComponent(item.lugarInicio)}`}
+                    src={`https://www.google.com/maps/embed/v1/place?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}&q=${encodeURIComponent(item.lugarInicio)}`}
                     width="100%"
                     height="100%"
                     style={{ border: 0 }}
