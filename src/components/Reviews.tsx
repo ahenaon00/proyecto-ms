@@ -31,7 +31,10 @@ function Reviews({ itemId }: ReviewsProps) {
       try {
         setLoading(true)
         const response = await reviewsAPI.getReviews(itemId)
-        setReviews(response.data)
+        const data = response.data
+        // Handle if data is object with numeric keys
+        const reviewsArray = Array.isArray(data) ? data : (Object.values(data) as Review[])
+        setReviews(reviewsArray)
       } catch (err) {
         console.error('Error fetching reviews:', err)
         setReviews([])
@@ -130,17 +133,14 @@ function Reviews({ itemId }: ReviewsProps) {
               <div key={review.id} className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
                 <div className="flex items-start justify-between mb-2">
                   <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-lg">{renderStars(review.puntuacion)}</span>
-                      <span className="font-semibold text-gray-900 dark:text-white">
+                    <div className="mb-1">
+                      <div className="text-lg">{renderStars(review.calificacion.puntuacion)}</div>
+                      <div className="font-semibold text-gray-900 dark:text-white">
                         {review.titulo}
-                      </span>
+                      </div>
                     </div>
                     <p className="text-gray-700 dark:text-gray-300 mb-2">
-                      {review.comentario}
-                    </p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                      {new Date(review.fechaCreacion).toLocaleDateString()}
+                      {review.cuerpo}
                     </p>
                   </div>
                 </div>
@@ -152,9 +152,6 @@ function Reviews({ itemId }: ReviewsProps) {
                       <div key={reply.id} className="bg-white dark:bg-gray-600 p-3 rounded border-l-4 border-blue-500">
                         <p className="text-gray-700 dark:text-gray-300 text-sm">
                           {reply.cuerpo}
-                        </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                          {new Date(reply.fechaCreacion).toLocaleDateString()}
                         </p>
                       </div>
                     ))}

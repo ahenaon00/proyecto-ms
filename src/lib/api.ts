@@ -39,21 +39,35 @@ export interface PreguntaFrecuente {
   itemId: number
 }
 
+export interface Calificacion {
+  id: number
+  uid: string
+  puntuacion: number
+  fechaCalificacion: string
+}
+
 export interface Review {
   id: number
-  puntuacion: number
+  uid: string
   titulo: string
-  comentario: string
-  fechaCreacion: string
-  usuarioId: string
-  replies?: Reply[]
+  cuerpo: string
+  likes: number
+  replies: Reply[]
+  item: any // Item data
+  calificacion: Calificacion
+  comentarioPadre: boolean
 }
 
 export interface Reply {
   id: number
+  uid: string
+  titulo: string
   cuerpo: string
+  likes: number
+  replies: Reply[]
+  calificacion?: Calificacion
+  comentarioPadre: boolean
   fechaCreacion: string
-  usuarioId: string
 }
 
 // API functions para items
