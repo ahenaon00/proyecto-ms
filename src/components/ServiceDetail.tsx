@@ -262,48 +262,48 @@ function ServiceDetail() {
             </div>
 
             {/* Weather Information */}
-            {clasificacionData && (clasificacionData.temperaturaActual || clasificacionData.viento || clasificacionData.lluvia) && (
+            {clasificacionData && (
               <div className="mb-6">
                 <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-3">Información del Clima</h2>
                 <div className="bg-gray-50 dark:bg-gray-700 rounded-lg overflow-hidden">
                   <table className="w-full">
                     <tbody>
-                      {clasificacionData.temperaturaActual !== null && (
-                        <tr className="border-b border-gray-200 dark:border-gray-600">
-                          <td className="px-4 py-3 text-gray-700 dark:text-gray-300 font-medium">Temperatura Actual</td>
-                          <td className="px-4 py-3 text-gray-900 dark:text-white">{clasificacionData.temperaturaActual}°C</td>
-                        </tr>
-                      )}
-                      {clasificacionData.viento !== null && (
-                        <tr className="border-b border-gray-200 dark:border-gray-600">
-                          <td className="px-4 py-3 text-gray-700 dark:text-gray-300 font-medium">Viento</td>
-                          <td className="px-4 py-3 text-gray-900 dark:text-white">{clasificacionData.viento} km/h</td>
-                        </tr>
-                      )}
-                      {clasificacionData.codigoClima !== null && (
-                        <tr className="border-b border-gray-200 dark:border-gray-600">
-                          <td className="px-4 py-3 text-gray-700 dark:text-gray-300 font-medium">Código del Clima</td>
-                          <td className="px-4 py-3 text-gray-900 dark:text-white">{clasificacionData.codigoClima}</td>
-                        </tr>
-                      )}
-                      {clasificacionData.lluvia !== null && (
-                        <tr className="border-b border-gray-200 dark:border-gray-600">
-                          <td className="px-4 py-3 text-gray-700 dark:text-gray-300 font-medium">Lluvia</td>
-                          <td className="px-4 py-3 text-gray-900 dark:text-white">{clasificacionData.lluvia} mm</td>
-                        </tr>
-                      )}
-                      {clasificacionData.precipitacion !== null && (
-                        <tr className="border-b border-gray-200 dark:border-gray-600">
-                          <td className="px-4 py-3 text-gray-700 dark:text-gray-300 font-medium">Precipitación</td>
-                          <td className="px-4 py-3 text-gray-900 dark:text-white">{clasificacionData.precipitacion} mm</td>
-                        </tr>
-                      )}
-                      {clasificacionData.probabilidadPrecipitacion !== null && (
-                        <tr>
-                          <td className="px-4 py-3 text-gray-700 dark:text-gray-300 font-medium">Probabilidad de Precipitación</td>
-                          <td className="px-4 py-3 text-gray-900 dark:text-white">{clasificacionData.probabilidadPrecipitacion}%</td>
-                        </tr>
-                      )}
+                      <tr className="border-b border-gray-200 dark:border-gray-600">
+                        <td className="px-4 py-3 text-gray-700 dark:text-gray-300 font-medium">Temperatura Actual</td>
+                        <td className="px-4 py-3 text-gray-900 dark:text-white">
+                          {clasificacionData.temperaturaActual !== null ? `${clasificacionData.temperaturaActual}°C` : 'null'}
+                        </td>
+                      </tr>
+                      <tr className="border-b border-gray-200 dark:border-gray-600">
+                        <td className="px-4 py-3 text-gray-700 dark:text-gray-300 font-medium">Viento</td>
+                        <td className="px-4 py-3 text-gray-900 dark:text-white">
+                          {clasificacionData.viento !== null ? `${clasificacionData.viento} km/h` : 'null'}
+                        </td>
+                      </tr>
+                      <tr className="border-b border-gray-200 dark:border-gray-600">
+                        <td className="px-4 py-3 text-gray-700 dark:text-gray-300 font-medium">Código del Clima</td>
+                        <td className="px-4 py-3 text-gray-900 dark:text-white">
+                          {clasificacionData.codigoClima !== null ? clasificacionData.codigoClima : 'null'}
+                        </td>
+                      </tr>
+                      <tr className="border-b border-gray-200 dark:border-gray-600">
+                        <td className="px-4 py-3 text-gray-700 dark:text-gray-300 font-medium">Lluvia</td>
+                        <td className="px-4 py-3 text-gray-900 dark:text-white">
+                          {clasificacionData.lluvia !== null ? `${clasificacionData.lluvia} mm` : 'null'}
+                        </td>
+                      </tr>
+                      <tr className="border-b border-gray-200 dark:border-gray-600">
+                        <td className="px-4 py-3 text-gray-700 dark:text-gray-300 font-medium">Precipitación</td>
+                        <td className="px-4 py-3 text-gray-900 dark:text-white">
+                          {clasificacionData.precipitacion !== null ? `${clasificacionData.precipitacion} mm` : 'null'}
+                        </td>
+                      </tr>
+                      <tr>
+                        <td className="px-4 py-3 text-gray-700 dark:text-gray-300 font-medium">Probabilidad de Precipitación</td>
+                        <td className="px-4 py-3 text-gray-900 dark:text-white">
+                          {clasificacionData.probabilidadPrecipitacion !== null ? `${clasificacionData.probabilidadPrecipitacion}%` : 'null'}
+                        </td>
+                      </tr>
                     </tbody>
                   </table>
                 </div>
@@ -311,39 +311,41 @@ function ServiceDetail() {
             )}
 
             {/* Country Information */}
-            {clasificacionData && (clasificacionData.paisDestino || clasificacionData.population || clasificacionData.gini) && (
+            {clasificacionData && (
               <div className="mb-6">
                 <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-3">Información del País</h2>
                 <div className="bg-gray-50 dark:bg-gray-700 rounded-lg overflow-hidden">
                   <table className="w-full">
                     <tbody>
-                      {clasificacionData.paisDestino && (
-                        <tr className="border-b border-gray-200 dark:border-gray-600">
-                          <td className="px-4 py-3 text-gray-700 dark:text-gray-300 font-medium">País</td>
-                          <td className="px-4 py-3 text-gray-900 dark:text-white">
-                            {clasificacionData.flag && <span className="mr-2">{clasificacionData.flag}</span>}
-                            {clasificacionData.paisDestino}
-                          </td>
-                        </tr>
-                      )}
-                      {clasificacionData.population !== null && (
-                        <tr className="border-b border-gray-200 dark:border-gray-600">
-                          <td className="px-4 py-3 text-gray-700 dark:text-gray-300 font-medium">Población</td>
-                          <td className="px-4 py-3 text-gray-900 dark:text-white">{clasificacionData.population.toLocaleString()}</td>
-                        </tr>
-                      )}
-                      {clasificacionData.gini !== null && (
-                        <tr className="border-b border-gray-200 dark:border-gray-600">
-                          <td className="px-4 py-3 text-gray-700 dark:text-gray-300 font-medium">Índice Gini</td>
-                          <td className="px-4 py-3 text-gray-900 dark:text-white">{clasificacionData.gini}</td>
-                        </tr>
-                      )}
-                      {clasificacionData.fifa && (
-                        <tr>
-                          <td className="px-4 py-3 text-gray-700 dark:text-gray-300 font-medium">Código FIFA</td>
-                          <td className="px-4 py-3 text-gray-900 dark:text-white">{clasificacionData.fifa}</td>
-                        </tr>
-                      )}
+                      <tr className="border-b border-gray-200 dark:border-gray-600">
+                        <td className="px-4 py-3 text-gray-700 dark:text-gray-300 font-medium">País</td>
+                        <td className="px-4 py-3 text-gray-900 dark:text-white">
+                          {clasificacionData.paisDestino ? (
+                            <>
+                              {clasificacionData.flag && <span className="mr-2">{clasificacionData.flag}</span>}
+                              {clasificacionData.paisDestino}
+                            </>
+                          ) : 'null'}
+                        </td>
+                      </tr>
+                      <tr className="border-b border-gray-200 dark:border-gray-600">
+                        <td className="px-4 py-3 text-gray-700 dark:text-gray-300 font-medium">Población</td>
+                        <td className="px-4 py-3 text-gray-900 dark:text-white">
+                          {clasificacionData.population !== null ? clasificacionData.population.toLocaleString() : 'null'}
+                        </td>
+                      </tr>
+                      <tr className="border-b border-gray-200 dark:border-gray-600">
+                        <td className="px-4 py-3 text-gray-700 dark:text-gray-300 font-medium">Índice Gini</td>
+                        <td className="px-4 py-3 text-gray-900 dark:text-white">
+                          {clasificacionData.gini !== null ? clasificacionData.gini : 'null'}
+                        </td>
+                      </tr>
+                      <tr>
+                        <td className="px-4 py-3 text-gray-700 dark:text-gray-300 font-medium">Código FIFA</td>
+                        <td className="px-4 py-3 text-gray-900 dark:text-white">
+                          {clasificacionData.fifa || 'null'}
+                        </td>
+                      </tr>
                     </tbody>
                   </table>
                 </div>
