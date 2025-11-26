@@ -19,6 +19,7 @@ function ServiceDetail() {
   const { hasRole } = useAuth()
 
   const [item, setItem] = useState<ItemResponse | null>(null)
+  const [clasificacionData, setClasificacionData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [quantity, setQuantity] = useState(1)
@@ -48,6 +49,8 @@ function ServiceDetail() {
             fechaDisponibilidadInicio: rawData.item.fechaDisponibilidadInicio || rawData.clasificacionData?.fechaDisponibilidadInicio || '',
             fechaDisponibilidadFin: rawData.item.fechaDisponibilidadFin || rawData.clasificacionData?.fechaDisponibilidadFin || ''
           }
+          // Store clasificacionData separately
+          setClasificacionData(rawData.clasificacionData)
         } else {
           // Nueva estructura plana
           processedItem = rawData as ItemResponse
@@ -258,6 +261,95 @@ function ServiceDetail() {
               </div>
             </div>
 
+            {/* Weather Information */}
+            {clasificacionData && (clasificacionData.temperaturaActual || clasificacionData.viento || clasificacionData.lluvia) && (
+              <div className="mb-6">
+                <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-3">Información del Clima</h2>
+                <div className="bg-gray-50 dark:bg-gray-700 rounded-lg overflow-hidden">
+                  <table className="w-full">
+                    <tbody>
+                      {clasificacionData.temperaturaActual !== null && (
+                        <tr className="border-b border-gray-200 dark:border-gray-600">
+                          <td className="px-4 py-3 text-gray-700 dark:text-gray-300 font-medium">Temperatura Actual</td>
+                          <td className="px-4 py-3 text-gray-900 dark:text-white">{clasificacionData.temperaturaActual}°C</td>
+                        </tr>
+                      )}
+                      {clasificacionData.viento !== null && (
+                        <tr className="border-b border-gray-200 dark:border-gray-600">
+                          <td className="px-4 py-3 text-gray-700 dark:text-gray-300 font-medium">Viento</td>
+                          <td className="px-4 py-3 text-gray-900 dark:text-white">{clasificacionData.viento} km/h</td>
+                        </tr>
+                      )}
+                      {clasificacionData.codigoClima !== null && (
+                        <tr className="border-b border-gray-200 dark:border-gray-600">
+                          <td className="px-4 py-3 text-gray-700 dark:text-gray-300 font-medium">Código del Clima</td>
+                          <td className="px-4 py-3 text-gray-900 dark:text-white">{clasificacionData.codigoClima}</td>
+                        </tr>
+                      )}
+                      {clasificacionData.lluvia !== null && (
+                        <tr className="border-b border-gray-200 dark:border-gray-600">
+                          <td className="px-4 py-3 text-gray-700 dark:text-gray-300 font-medium">Lluvia</td>
+                          <td className="px-4 py-3 text-gray-900 dark:text-white">{clasificacionData.lluvia} mm</td>
+                        </tr>
+                      )}
+                      {clasificacionData.precipitacion !== null && (
+                        <tr className="border-b border-gray-200 dark:border-gray-600">
+                          <td className="px-4 py-3 text-gray-700 dark:text-gray-300 font-medium">Precipitación</td>
+                          <td className="px-4 py-3 text-gray-900 dark:text-white">{clasificacionData.precipitacion} mm</td>
+                        </tr>
+                      )}
+                      {clasificacionData.probabilidadPrecipitacion !== null && (
+                        <tr>
+                          <td className="px-4 py-3 text-gray-700 dark:text-gray-300 font-medium">Probabilidad de Precipitación</td>
+                          <td className="px-4 py-3 text-gray-900 dark:text-white">{clasificacionData.probabilidadPrecipitacion}%</td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* Country Information */}
+            {clasificacionData && (clasificacionData.paisDestino || clasificacionData.population || clasificacionData.gini) && (
+              <div className="mb-6">
+                <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-3">Información del País</h2>
+                <div className="bg-gray-50 dark:bg-gray-700 rounded-lg overflow-hidden">
+                  <table className="w-full">
+                    <tbody>
+                      {clasificacionData.paisDestino && (
+                        <tr className="border-b border-gray-200 dark:border-gray-600">
+                          <td className="px-4 py-3 text-gray-700 dark:text-gray-300 font-medium">País</td>
+                          <td className="px-4 py-3 text-gray-900 dark:text-white">
+                            {clasificacionData.flag && <span className="mr-2">{clasificacionData.flag}</span>}
+                            {clasificacionData.paisDestino}
+                          </td>
+                        </tr>
+                      )}
+                      {clasificacionData.population !== null && (
+                        <tr className="border-b border-gray-200 dark:border-gray-600">
+                          <td className="px-4 py-3 text-gray-700 dark:text-gray-300 font-medium">Población</td>
+                          <td className="px-4 py-3 text-gray-900 dark:text-white">{clasificacionData.population.toLocaleString()}</td>
+                        </tr>
+                      )}
+                      {clasificacionData.gini !== null && (
+                        <tr className="border-b border-gray-200 dark:border-gray-600">
+                          <td className="px-4 py-3 text-gray-700 dark:text-gray-300 font-medium">Índice Gini</td>
+                          <td className="px-4 py-3 text-gray-900 dark:text-white">{clasificacionData.gini}</td>
+                        </tr>
+                      )}
+                      {clasificacionData.fifa && (
+                        <tr>
+                          <td className="px-4 py-3 text-gray-700 dark:text-gray-300 font-medium">Código FIFA</td>
+                          <td className="px-4 py-3 text-gray-900 dark:text-white">{clasificacionData.fifa}</td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
             {/* Special Requirements - Removed since not available in new API */}
 
             {/* Frequent Questions - Now handled by separate component */}
@@ -266,14 +358,41 @@ function ServiceDetail() {
             {/* Reviews - Now handled by separate component */}
             <Reviews itemId={item.id} />
 
-             {/* Location Map Placeholder - Simplified since coordinates may not be available in new API */}
+             {/* Location Map */}
             <div className="mb-6">
               <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-3">Ubicación</h2>
-              <div className="bg-gray-200 dark:bg-gray-700 h-64 rounded-lg flex items-center justify-center">
-                <p className="text-gray-600 dark:text-gray-400">
-                  📍 {item.lugarInicio}
-                </p>
-              </div>
+              {clasificacionData?.maps?.googleMaps ? (
+                <div className="bg-gray-200 dark:bg-gray-700 h-96 rounded-lg overflow-hidden">
+                  <iframe
+                    src={`https://www.google.com/maps/embed/v1/place?key=YOUR_API_KEY&q=${encodeURIComponent(item.lugarInicio)}`}
+                    width="100%"
+                    height="100%"
+                    style={{ border: 0 }}
+                    allowFullScreen
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
+                    title="Ubicación del servicio"
+                  />
+                </div>
+              ) : (
+                <div className="bg-gray-200 dark:bg-gray-700 h-64 rounded-lg flex items-center justify-center">
+                  <p className="text-gray-600 dark:text-gray-400">
+                    📍 {item.lugarInicio}
+                  </p>
+                </div>
+              )}
+              {clasificacionData?.maps?.googleMaps && (
+                <div className="mt-2">
+                  <a
+                    href={clasificacionData.maps.googleMaps}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 dark:text-blue-400 hover:underline"
+                  >
+                    Ver en Google Maps →
+                  </a>
+                </div>
+              )}
             </div>
 
             {/* Quantity Selector - Only for clients */}
